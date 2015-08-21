@@ -12,5 +12,6 @@ while True:
             except:
                 pass
         break
+    
 doc.close()
 raw_input('Press any key for exit:')
