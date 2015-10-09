@@ -9,7 +9,11 @@ time.clock()
 """
 
 result={}
-template = re.compile('"[GET|POST].*?HTTP.*?"\s{1,5}(\d{3})?')#^\d{1,3}(\d{3})?')
+# create template for search in every log line, use re.search.
+# (\d{3}) - create one group.
+# Ex.("[GET|POST]).*?(HTTP.*?)"\s{1,5}(\d{3})? - will find 3 groups ("GET or "POST),(HTTP/1.1),(200)
+# result.setdefault(key,0) -> use help(result.setdefault) 
+template = re.compile('"[GET|POST].*?HTTP.*?"\s{1,5}(\d{3})?')
 
 with open("access.log.1") as f:
     for line in f.readlines():
