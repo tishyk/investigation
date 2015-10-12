@@ -34,6 +34,8 @@ def compare_image():
 if __name__ == '__main__':
     #new_image()
     #read_image()
-    compare_image()
+    #compare_image()
+    img1 = Image.open('butterfly.jpg')
+    img2 = read_image('butt_part.png')
 
 #im = Image.open("butterfly.jpg")
