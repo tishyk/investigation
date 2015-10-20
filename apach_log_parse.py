@@ -16,7 +16,7 @@ result={}
 template = re.compile('"[GET|POST].*?HTTP.*?"\s{1,5}(\d{3})?')
 
 with open("access.log.1") as f:
-    for line in f.readlines():
+    for line in f.readlines()[-3:]:
         key = template.search(line).groups()[0]
         if key:
             result[key]=result.setdefault(key,0)+1
