@@ -1,0 +1,238 @@
+Creation of an article is in progress.....
+Python - how to test libraries with C++ interface
+
+Edit
+Зачем это нужно:
+Данная статья предназначена для SQA инженеров, не знающих С++, но желающих протестировать правильность работы библиотеки с С++ интерфейсом путем написания собственных сценариев тестирования на Python.
+
+Edit
+Требования:
+Взять динамическую библиотеку, имеющую интерфейс, написанный на С++ (либо скомпилировать библиотеку самим из имеющихся исходных файлов).
+Используя Python, написать скрипт, который бы производил тестирвание функционала при помощи вызова публичных С++ API библиотеки.
+Запустить скрипт и убедиться в правильности полученных результатов.
+Edit
+Инструменты: Python with ctypes, libboost-python, CMake (optional)
+https://docs.python.org/2/library/ctypes.html
+
+Edit
+Практическая часть:
+Шаг 1 Рассмотрим случай, когда есть только исходный код, и нам необходимо сначала собрать файл динамической библиотеки.
+Если уже есть *.so файл, который нужно протестировать, Шаг 1 можно пропустить.
+Предположим, что исходный код библиотеки состоит из двух файлов: sample.h и sample.cpp
+
+Файл sample.h содержит те API, которые мы будем вызывать в скрипте, написанном на Python:
+
+#ifndef __ADDNUMBERS_H__
+#define __ADDNUMBERS_H__
+
+/* Class which we would like to test */
+class AddNumbers
+{
+    private:
+        int _a;            // Some private variable
+
+    public:
+        AddNumbers();      // Default constructor
+        ~AddNumbers();     // Default destructor
+
+        void setA(int a);  // Function which sets a value of 
+                           // a private variable
+        int getA() const;  // Function which gets a current value 
+                           // of a private variable
+}; // AddNumbers
+
+#endif // __ADDNUMBERS_H__
+
+Файл sample.cpp содержит реализацию методов класса:
+
+#include "sample.h" 
+
+/* Default constructor */
+AddNumbers::AddNumbers () : _a(0) {}
+
+/* Default destructor */
+AddNumbers::~AddNumbers () {}
+
+/* Function which sets a value of a private variable */
+void AddNumbers::setA(int a) {
+        _a = a;
+}
+
+/* Function which gets a current value of a private variable */
+int AddNumbers::getA () const {
+        return _a;
+}
+
+Для того, чтобы собрать файл библиотеки, воспользуемся CMake (материалы тренинга Training Build Automation, Autotools).
+Создадим файл CMakeLists.txt:
+
+cmake_minimum_required(VERSION 2.8)
+add_library(sample SHARED sample.h sample.cpp)
+install(TARGETS sample DESTINATION "${PROJECT_SOURCE_DIR}")
+
+Для того, чтобы собрать файл библиотеки, необходимо в консоли выполнить следующие команды:
+
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+$ make install
+В результате выполнения команд, должен появиться файл библиотеки libsample.so в директории, где находятся файлы CMakeLists.txt, sample.h и sample.cpp.
+
+Шаг 2 Написать "прослойку", которая бы предоставила Си интерфейс вместо С++, и скрипт на Python, который бы вызывал Си API.
+
+Трудность состоит в том, что модуль ctypes может вызывать только API, написанный на чистом Си. Поэтому необходимо создать промежуточный слой между библиотекой, созданной на С++, и скриптом, написанным на Python. 
+Существует несколько вариантов как это можно сделать.
+
+Вариант 1 [требует базовых знаний С/С++]
+Создать содственную библиотеку с интерфейсом на Си, которая бы внутри вызывала функции на С++, но предоставляла публичный интерфейс на Си. Эта библиотека будет очень простой.
+Ниже приведен пример создания библиотеки libwrapper.so:
+- Файл wrap.hpp:
+
+#ifndef __WRAP_H__
+#define __WRAP_H__
+
+#include "sample.h" // Includes a header of libsample.so
+
+// Provide an interface on C
+extern "C" {
+    /* C interface for a default constructor */
+    AddNumbers* AddNumbers_new();
+
+    /* C interface for a function which sets a value of a private variable */
+    void AddNumbers_setA(AddNumbers* foo, int a);
+
+    /* C interface for a function which gets a current value of a private variable*/
+    int AddNumbers_getA(AddNumbers* foo);
+}
+
+#endif // __WRAP_H__
+
+- Файл wrap.cpp:
+
+#include "wrap.hpp" 
+
+/* Simple implementation of AddNumbers_new() API */
+AddNumbers* AddNumbers_new() { 
+    return new AddNumbers(); 
+}
+
+/* Simple implementation of AddNumbers_setA() API */
+void AddNumbers_setA(AddNumbers* foo, int a) { 
+    foo->setA(a); 
+}
+
+/* Simple implementation of AddNumbers_getA() API */
+int AddNumbers_getA(AddNumbers* foo) { 
+    foo->getA(); 
+}
+
+- Файл CMakeLists.txt:
+
+cmake_minimum_required(VERSION 2.8)
+
+include_directories ("${PROJECT_SOURCE_DIR}")
+add_library(wrapper SHARED wrap.hpp wrap.cpp)
+target_link_libraries (wrapper "${PROJECT_SOURCE_DIR}/libsample.so")
+
+Далее необходимо собрать библиотеку libwrapper.so используя аналогичные команды, как и в случае с С++ библиотекой.
+
+Скрипт на Python, который бы вызывал созданные API на Си, представлен ниже.
+- Файл sample1.py:
+
+# Import module ctypes 
+from ctypes import *
+
+# Load our shared library with C interface
+lib = cdll.LoadLibrary('./libwrapper.so')
+
+# Write a Python wrapper
+class Foo(object):
+    # Call default constructor AddNumbers_new()
+    def __init__(self):
+        self.obj = lib.AddNumbers_new() 
+
+    # Call AddNumbers_getA() API
+    def getA(self):
+        return lib.AddNumbers_getA(self.obj) 
+
+    # Call AddNumbers_setA() API
+    def setA(self, a):
+        lib.AddNumbers_setA(self.obj, a)
+
+# Test scenario
+# 1. Create a Foo object
+f = Foo()
+
+# 2. Enter an integer value
+var = raw_input("Enter an integer value: ")
+
+# 3. Call AddNumbers_setA() API and set new value of a private variable
+f.setA(int(var))
+
+# 4. Call AddNumbers_getA() API and print current value of a private variable
+print f.getA()
+
+Более детальную информацию можно найти по ссылке http://stackoverflow.com/questions/145270/calling-c-c-from-python
+
+Вариант 2 [не требует знания С/С++]
+Для начала, необходимо установить недостающие зависимости:
+
+$ sudo apt-get install python-dev
+$ sudo apt-get install libboost-python
+Далее необходимо создать динамическую библиотеку, которая бы являлась "прослойкой" между C++ API и скриптом, написанном на Python. Можно использовать шаблонный файл из примера, приведенный ниже, заменив только названия методов в дальнейшем.
+- Файл PythonWripper.cpp:
+
+#include <boost/python.hpp>
+#include <sample.h>
+#include <Python.h>
+
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(libPythonWripper)
+{
+    class_<AddNumbers>("AddNumbers")         // Вместо AddNumbers нужно указать название 
+                                                 // класса, который необходимо протестирвоать
+        .def("getA", &AddNumbers::getA)  // Вместо AddNumbers::getA указать имя класса::имя метода,
+                                                 // которые необходимо протестировать
+        .def("setA", &AddNumbers::setA)  // Вместо AddNumbers::setA указать имя класса::имя метода,
+                                                 // которые необходимо протестировать
+    ;
+}
+
+Далее необходимо собрать библиотеку. Можно воспользоваться CMake (как в Варианте 1), либо следующими командами компилятора:
+
+$ g++ -I/usr/include/python2.7 -O0 -g3 -Wall -c -fmessage-length=0 -fPIC -MMD -MP -MF"PythonWripper.d" -MT"PythonWripper.d" -o "PythonWripper.o" "PythonWripper.cpp" 
+
+$ g++ -shared -o "libPythonWripper.so"  PythonWripper.o -lsample -lboost_python -lpython2.7
+
+В результате должен появиться файл фифлиотеки libPythonWripper.so.
+Скрипт на Python, который бы вызывал API на С++, представлен ниже.
+- Файл sample2.py:
+
+# Load a shared library
+import libPythonWripper
+
+# Test scenario
+# 1. Create an object of AddNumbers type
+lib = libPythonWripper.AddNumbers()
+
+# 2. Enter an integer value
+var = raw_input("Enter an integer value: ")
+
+# 3. Call setA() API and set new value of a private variable
+lib.setA(int(var))
+
+# 4. Call getA() API and print current value of a private variable
+print lib.getA()
+
+Более детальную информацию можно найти по ссылке http://linuxtortures.blogspot.com/2012/12/using-c-libraries-in-python.html
+
+Шаг 3 Запуск скрипта и верификация результатов работы С++ библиотеки.
+
+Запускаем скрипт sampleX.py:
+
+$ python sampleX.py
+
+и сравниваем результаты работы с ожидаемыми значениями.
+Все! Скрипт на Python, при помощи которого можно протестировать правильность работы библиотеки, написанной на С++, готов!

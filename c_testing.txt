@@ -1,0 +1,105 @@
+Python - how to test libraries with C interfaceEdit
+Зачем это нужно:
+Данная статья предназначена для SQA инженеров, не знающих Си, но желающих протестировать правильность работы библиотеки с Си интерфейсом путем написания собственных сценариев тестирования на Python.
+
+Edit
+Требования:
+Взять динамическую библиотеку, имеющую интерфейс, написанный на Си (либо скомпилировать библиотеку самим из имеющихся исходных файлов).
+Используя Python, написать скрипт, который бы производил тестирвание функционала при помощи вызова публичных Си API библиотеки.
+Запустить скрипт и убедиться в правильности полученных результатов.
+Edit
+Инструменты: Python with ctypes, CMake (optional)
+https://docs.python.org/2/library/ctypes.html
+
+Edit
+Практическая часть:
+Шаг 1 Рассмотрим случай, когда есть только исходный код, и нам необходимо сначала собрать файл динамической библиотеки.
+Если уже есть *.so файл, который нужно протестировать, Шаг 1 можно пропустить.
+Предположим, что исходный код библиотеки состоит из двух файлов: sample.c и sample.h
+
+Файл sample.h содержит те API, которые мы будем вызывать в скрипте, написанном на Python:
+
+#ifndef __SAMPLE_H__
+#define __SAMPLE_H__
+
+/* First public C API */
+int function_one(int a);
+
+/* Second public C API */
+int function_two(void);
+
+#endif
+
+Файл sample.c содержит реализацию публичных API:
+
+#include "sample.h" 
+#include <stdio.h>
+
+/* Function prints a phrase "Inside function ONE" and returns a value of input parameter "a" multiplied by 2. */
+int function_one(int a) {
+    printf ("Inside function ONE\n");
+    a = a * 2;
+    return a;
+}
+
+/* Function prints a phrase "Inside function TWO" and returns a zero value. */
+int function_two(void) {
+    printf ("Inside function TWO\n");
+    return 0;
+}
+
+Для того, чтобы собрать файл библиотеки, воспользуемся CMake (материалы тренинга Training Build Automation, Autotools).
+Создадим файл CMakeLists.txt:
+
+cmake_minimum_required(VERSION 2.8)
+add_library(sample SHARED sample.h sample.c)
+install(TARGETS sample DESTINATION "${PROJECT_SOURCE_DIR}")
+
+Для того, чтобы собрать файл библиотеки, необходимо в консоли выполнить следующие команды:
+
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+$ make install
+В результате выполнения команд, должен появиться файл библиотеки libsample.so в директории, где находятся файлы CMakeLists.txt, sample.h и sample.c.
+
+Шаг 2 Создать скрипт на Python, который будет вызывать функции из созданной библиотеки.
+
+Предлагается создание простого тест-сценария на Python, в котором бы вызывались все публичные API библиотеки.
+Ниже приведен пример скрипта example.py:
+
+# Import ctypes module
+from ctypes import cdll 
+
+# Load our shared library with C interface
+lib = cdll.LoadLibrary('./libsample.so') 
+
+# Test scenario 1
+# In current case user have to enter 2 integer values var1 and var2, 
+# and as a result we are expecting to get (var1 * 2) and (var2 * 2)
+var1 = raw_input("Enter the 1st value: ") # Input the 1st value
+var2 = raw_input("Enter the 2nd value: ") # Input the 2nd value
+
+result1 = lib.function_one(int(var1))     # Call function_one() API from C library
+result2 = lib.function_one(int(var2))     # Call function_one() API from C library
+
+print "Var1 * 2 = ",result1
+print "Var2 * 2 = ",result2
+
+# Test scenario 2
+# In current case we are expecting to get 0 as a returned value
+print lib.function_two()                  # Call function_two() API from C library
+
+Шаг 3 Запуск скрипта и верификация результатов работы Си библиотеки.
+
+Запускаем скрипт example.py:
+
+$ python example.py
+и сравниваем результаты работы с ожидаемыми значениями.
+Пример работы скрипта:
+
+
+
+Все! Скрипт на Python, при помощи которого можно протестировать правильность работы библиотеки, написанной на Си, готов!
+Более подробную информацию по поводу использования ctypes можно найти по ссылке: https://docs.python.org/2/library/ctypes.html

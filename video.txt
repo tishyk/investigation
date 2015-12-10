@@ -1,0 +1,46 @@
+Python - extract frames from video and save them as separate picturesEdit
+Зачем это нужно:
+Данная статья предназначена для SQA инженеров, желающих извлечь из видео файла кадры, сохранить их в отдельные файлы, либо использовать их для дальнейшей обработки или анализа.
+
+Edit
+Инструменты: Python with OpenCV
+http://opencv.org/downloads.html
+
+Edit
+Практическая часть:
+1. Установить OpenCV используя официальные инструкции на официальном сайте http://docs.opencv.org/2.4/doc/tutorials/introduction/table_of_content_introduction/table_of_content_introduction.html
+Во время установки убедиться, что все нужные флаги компиляции были выставлены правильно (детали можно найти http://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html либо http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/)
+
+2. Написать и запустить скрипт:
+
+import cv2
+
+# Initialize VideoCapture class
+cap = cv2.VideoCapture("test.avi")
+
+# Get a number of frames in video file
+count = int(cap.get(7)) # 7 - CV_CAP_PROP_FRAME_COUNT
+# For more details please refer to 
+# http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html
+
+print "Total frames number : ", count
+
+# Set a current position to zero-th frame
+cap.set(1, 0); # 1 - CV_CAP_PROP_POS_FRAMES, 0 - position
+
+# For each frame do
+for i in range(count):
+    # 1. Read a current frame to buffer 'img'
+    [res, img] = cap.read()
+    # 2. Check a result of reading. If result is False, stop reading new frames
+    if res==False: break
+    # 3. Generate a name of a file where image buffer will be saved
+    file_name = "frame"+str(i)+".jpg" 
+    # 4. Write an image buffer to the file
+    cv2.imwrite(file_name, img) # Save buffer to file
+
+3. Проверить кадры, которые сохранились в той же директории, из которой запускался скрипт (конечно же, путь для сохранения можно поменять используя переменную file_name).
+
+Все! Скрипт на Python готов!
+
+Более подробную информацию по поводу OpenCV API можно найти по ссылке: http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html

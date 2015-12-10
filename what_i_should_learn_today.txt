@@ -1,0 +1,35 @@
+надо ориентироваться в ООП, Питоне 3-м
+не помешает знание Джанги
+не помешает знание Джанги
+подтяни ООП _dict_
+не лишним будет знание сетей
+1. Python 3 + OOP
+2. Networking: Switches, Routers, OSI model (без фанатизма)
+3. Pyro (python lib) (без фанатизма)
+4. Django
+5. PyQt
+6. C/C++ (Python extensions)
+
+повтори про линкед лист, чтоб не сесть в лужу
+повтори еще тестирование: методы, матрицы, кейсы и  прочую х-ню
+написать простенькую функцию на фильтрацию списка
+
+
+Python:
+1. Pyro: https://pypi.python.org/pypi/Pyro4
+2. Python C Extention: https://docs.python.org/3/c-api/index.html
+3. Python 3.4.3 specific multiprocessing: https://docs.python.org/3/library/multiprocessing.html, почти не исспользуем. Идея избавится от Thread где возможно.
+4. Python args module
+5. lxml
+6. working with SOAP
+7. working with HTTP
+8. sockets - TCP\UDP
+
+Data storage generic:
+
+RAID\RAIN - https://ru.wikipedia.org/wiki/RAID - как стартовая точка, знать детали реализации +++
+
+Device\FS Driver Linux\Windows\Mac OS X:
+Тут сложно что то подсказать, понимать общие принцыпы функционирования и архитектуру драйверов на основных десктоп системах. Знать что такое ControlIO\systctl.
+
+Контрол версии - Accurev http://www.borland.com/Products/Change-Management/AccuRev
